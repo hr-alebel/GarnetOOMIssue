@@ -6,8 +6,10 @@ namespace GarnetOOMIssue
 	{
 		static void Main(string[] args)
 		{
-			int expire_in_sec_min = 15;
-			int expire_in_sec_max = 30;
+			int expire_in_sec_min = 5;
+			int expire_in_sec_max = 15;
+			int read_delay = 10;
+			int read_delay_counter = 0;
 			List<StringBlock> blocks = new List<StringBlock>();
 			ConnectionMultiplexer redis = ConnectionMultiplexer.Connect("localhost");
 			IDatabase db = redis.GetDatabase();
@@ -35,7 +37,26 @@ namespace GarnetOOMIssue
 					}
 				}
 				
-				
+				read_delay_counter++;
+				if (read_delay_counter >= read_delay)
+				{
+					read_delay_counter = 0;
+					long memoryUsage = 0; 
+					var keys = redis.GetServer("localhost:6379").Keys();
+					
+					// Display all keys and their values
+					foreach (var key in keys)
+					{
+						long? size_key = (long?)db.Execute("MEMORY", "USAGE", key);
+						if (size_key.HasValue)
+						{
+							memoryUsage += size_key.Value;
+						}
+						//var value = db.StringGet(key);					
+					}
+					Console.WriteLine("Read all Keys and their values");
+					Console.WriteLine($"Size: {memoryUsage/1000} KB");
+				}
 
 				Thread.Sleep(1000);
 			}
